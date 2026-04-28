@@ -1,17 +1,17 @@
 # Claude AI News Automation
 
-Raspberry Pi 上で Claude CLI を cron 実行し、AI ニュースの要約を Markdown として Obsidian Vault に保存するための最小構成です。
+Raspberry Pi 4 上で Claude Code CLI を cron 実行し、AIプログラミング関連ニュースを Markdown として生成します。生成結果は GitHub に push し、LINE Messaging API で通知します。
 
 ## Architecture
 
 ```text
-Raspberry Pi
+Raspberry Pi 4
   -> cron
-  -> Claude CLI
-  -> Markdown files
-  -> Obsidian Vault
-  -> Syncthing / Git sync
-  -> iPhone / Mac
+  -> Claude Code CLI
+  -> Markdown file
+  -> GitHub push
+  -> LINE Messaging API push message
+  -> iPhone
 ```
 
 ## Requirements
@@ -20,7 +20,9 @@ Raspberry Pi
 - Raspberry Pi OS / Debian-based Linux
 - Node.js 20+
 - Claude Code CLI
-- Obsidian Vault directory
+- GitHub repository for generated news logs
+- LINE Messaging API channel access token
+- LINE user ID, group ID, or room ID as the destination
 
 ## Quick start
 
@@ -33,8 +35,13 @@ cp .env.example .env
 Edit `.env`:
 
 ```bash
-OUTPUT_DIR=/home/pi/vault/AI_News
+CLAUDE_BIN=/usr/local/bin/claude
 PROMPT_FILE=prompts/ai_news_prompt.txt
+OUTPUT_DIR=/home/ryuta/ai-news-log/AI_News
+GIT_REPO_DIR=/home/ryuta/ai-news-log
+GITHUB_NEWS_BASE_URL=https://github.com/okamuller/ai-news-log/blob/main/AI_News
+LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token
+LINE_TO_ID=Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 Run manually:
@@ -43,17 +50,58 @@ Run manually:
 bash scripts/run_ai_news.sh
 ```
 
+## GitHub log repository
+
+Create or choose a GitHub repository to store generated Markdown files.
+
+Example local setup on Raspberry Pi:
+
+```bash
+git clone git@github.com:okamuller/ai-news-log.git /home/ryuta/ai-news-log
+mkdir -p /home/ryuta/ai-news-log/AI_News
+```
+
+`OUTPUT_DIR` should point to a directory inside this Git repository.
+
+## LINE Messaging API setup
+
+This project uses LINE Messaging API Push Message, not LINE Notify.
+
+1. Create a provider in LINE Developers.
+2. Create a Messaging API channel.
+3. Issue a channel access token.
+4. Add the bot as a friend or invite it to a group.
+5. Get the destination ID: `userId`, `groupId`, or `roomId`.
+6. Set `LINE_CHANNEL_ACCESS_TOKEN` and `LINE_TO_ID` in `.env`.
+
+Test push message:
+
+```bash
+curl -X POST https://api.line.me/v2/bot/message/push \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
+  -d '{
+    "to": "'"$LINE_TO_ID"'",
+    "messages": [
+      {
+        "type": "text",
+        "text": "AI news notification test"
+      }
+    ]
+  }'
+```
+
 ## .env / Path management
 
 - `.env` がリポジトリルートに存在する場合、自動で読み込みます。
-- `OUTPUT_DIR` と `PROMPT_FILE` は以下の両方に対応します。
-  - 絶対パス
-  - リポジトリルートからの相対パス
+- `OUTPUT_DIR`, `PROMPT_FILE`, `GIT_REPO_DIR` は絶対パスまたはリポジトリルートからの相対パスを指定できます。
+- `.env` は shell script として読み込まれます。信頼できない `.env` は使用しないでください。
 
-既定値:
+Defaults:
 
-- `OUTPUT_DIR=$HOME/vault/AI_News`
+- `OUTPUT_DIR=$HOME/ai-news-log/AI_News`
 - `PROMPT_FILE=prompts/ai_news_prompt.txt`
+- `GIT_REPO_DIR` is inferred from `OUTPUT_DIR` by searching upward for `.git`.
 
 ## Cron
 
@@ -73,24 +121,17 @@ The generated note is saved as:
 $OUTPUT_DIR/YYYY-MM-DD.md
 ```
 
-## Sync
+Then it is committed and pushed to GitHub.
 
-Recommended options:
+The LINE message contains:
 
-1. Syncthing: Raspberry Pi <-> iPhone / Mac
-2. Git: Raspberry Pi pushes generated Markdown to a private repository
-
-See:
-
-- `docs/syncthing_setup.md`
-- `docs/obsidian_setup.md`
-
-## Example
-
-- `examples/sample.md`
+- Date
+- First lines of the generated digest
+- GitHub URL of the generated Markdown file, if `GITHUB_NEWS_BASE_URL` is set
 
 ## Notes
 
 - This project does not use the Anthropic API directly.
-- It assumes Claude CLI is already authenticated on the Raspberry Pi.
-- Web search availability depends on the Claude CLI / plan behavior in your environment.
+- It assumes Claude Code CLI is already authenticated on the Raspberry Pi.
+- Non-interactive execution uses `claude -p`.
+- Web search availability and permissions depend on your Claude Code environment.
