@@ -34,7 +34,7 @@ Edit `.env`:
 
 ```bash
 OUTPUT_DIR=/home/pi/vault/AI_News
-PROMPT_FILE=/home/pi/claude-ai-news-automation/prompts/ai_news_prompt.txt
+PROMPT_FILE=prompts/ai_news_prompt.txt
 ```
 
 Run manually:
@@ -42,6 +42,18 @@ Run manually:
 ```bash
 bash scripts/run_ai_news.sh
 ```
+
+## .env / Path management
+
+- `.env` がリポジトリルートに存在する場合、自動で読み込みます。
+- `OUTPUT_DIR` と `PROMPT_FILE` は以下の両方に対応します。
+  - 絶対パス
+  - リポジトリルートからの相対パス
+
+既定値:
+
+- `OUTPUT_DIR=$HOME/vault/AI_News`
+- `PROMPT_FILE=prompts/ai_news_prompt.txt`
 
 ## Cron
 
@@ -72,6 +84,10 @@ See:
 
 - `docs/syncthing_setup.md`
 - `docs/obsidian_setup.md`
+
+## Example
+
+- `examples/sample.md`
 
 ## Notes
 
