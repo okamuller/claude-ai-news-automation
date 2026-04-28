@@ -1,0 +1,1 @@
+0 7 * * * /bin/bash ~/claude-ai-news-automation/scripts/run_ai_news.sh >> ~/ai-news.log 2>&1
